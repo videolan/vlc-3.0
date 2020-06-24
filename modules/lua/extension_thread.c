@@ -40,6 +40,58 @@ static void* Run( void *data );
 static void FreeCommands( struct command_t *command );
 
 /**
+ * Autoload an extension
+ * @param p_mgr This manager
+ * @param p_ext Extension to activate
+ * @return The usual VLC return codes
+ **/
+int Autoload( extensions_manager_t *p_mgr, extension_t *p_ext )
+{
+    assert( p_ext != NULL );
+
+    struct extension_sys_t *p_sys = p_ext->p_sys;
+    assert( p_sys != NULL );
+
+    vlc_mutex_lock( &p_sys->command_lock );
+    if ( p_sys->b_activated == false )
+    {
+        /* Prepare first command */
+        assert(p_sys->command == NULL);
+        p_sys->command = calloc( 1, sizeof( struct command_t ) );
+        if( !p_sys->command )
+        {
+            vlc_mutex_unlock( &p_sys->command_lock );
+            return VLC_ENOMEM;
+        }
+        p_sys->command->i_command = CMD_AUTOLOAD; /* No params */
+        if (p_sys->b_thread_running == true)
+        {
+            msg_Dbg( p_mgr, "Reautoload extension %s", p_ext->psz_title);
+            vlc_cond_signal( &p_sys->wait );
+        }
+    }
+    vlc_mutex_unlock( &p_sys->command_lock );
+
+    if (p_sys->b_thread_running == true)
+        return VLC_SUCCESS;
+
+    msg_Dbg( p_mgr, "Autoload extension '%s'", p_ext->psz_title );
+    /* Start thread */
+    p_sys->b_exiting = false;
+    p_sys->b_thread_running = true;
+
+    if( vlc_clone( &p_sys->thread, Run, p_ext, VLC_THREAD_PRIORITY_LOW )
+        != VLC_SUCCESS )
+    {
+        p_sys->b_exiting = true;
+        p_sys->b_thread_running = false;
+        return VLC_ENOMEM;
+    }
+
+    return VLC_SUCCESS;
+}
+
+/**
  * Activate an extension
  * @param p_mgr This manager
  * @param p_ext Extension to activate
@@ -98,6 +150,7 @@ static void FreeCommands( struct command_t *command )
     struct command_t *next = command->next;
     switch( command->i_command )
     {
+        case CMD_AUTOLOAD:
         case CMD_ACTIVATE:
         case CMD_DEACTIVATE:
         case CMD_CLICK: // Arg1 must not be freed
@@ -289,6 +342,18 @@ static void* Run( void *data )
         vlc_mutex_lock( &p_ext->p_sys->running_lock );
         switch( cmd->i_command )
         {
+            case CMD_AUTOLOAD:
+            {
+                /* Activate at startup only if an autoload function exists */
+                if( lua_ExecuteFunction( p_mgr, p_ext, "autoload", LUA_END ) >= 0 )
+                {
+                    vlc_mutex_lock( &p_ext->p_sys->command_lock );
+                    p_ext->p_sys->b_activated = true;
+                    vlc_mutex_unlock( &p_ext->p_sys->command_lock );
+                }
+                break;
+            }
+
             case CMD_ACTIVATE:
             {
                 if( lua_ExecuteFunction( p_mgr, p_ext, "activate", LUA_END ) < 0 )

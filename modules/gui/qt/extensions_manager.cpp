@@ -111,8 +111,29 @@ bool ExtensionsManager::loadExtensions()
         b_unloading = false;
     }
     b_failed = false;
+    
+    autoloadExtensions();
+    
     emit extensionsUpdated();
     return true;
+}
+
+void ExtensionsManager::autoloadExtensions()
+{
+    for( int id = 0; id < p_extensions_manager->extensions.i_size ; id++ ){
+
+        uint16_t i_ext = MENU_GET_EXTENSION( id );
+
+        vlc_mutex_lock( &p_extensions_manager->lock );
+        
+        extension_t *p_ext = ARRAY_VAL( p_extensions_manager->extensions, i_ext );
+        assert( p_ext != NULL);
+
+        vlc_mutex_unlock( &p_extensions_manager->lock );
+
+        if( !extension_IsActivated( p_extensions_manager, p_ext ) )
+            extension_Autoload( p_extensions_manager, p_ext );
+    }
 }
 
 void ExtensionsManager::unloadExtensions()

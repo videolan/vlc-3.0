@@ -33,6 +33,7 @@
 /* List of available commands */
 typedef enum
 {
+    CMD_AUTOLOAD,
     CMD_ACTIVATE = 1,
     CMD_DEACTIVATE,
     CMD_TRIGGERMENU,    /* Arg1 = int*, pointing to id to trigger. free */
@@ -91,6 +92,7 @@ struct extension_sys_t
 };
 
 /* Extensions: manager functions */
+int Autoload( extensions_manager_t *p_mgr, extension_t * );
 int Activate( extensions_manager_t *p_mgr, extension_t * );
 int Deactivate( extensions_manager_t *p_mgr, extension_t * );
 bool QueueDeactivateCommand( extension_t *p_ext );
@@ -116,6 +118,7 @@ static inline int PushCommandUnique( extension_t *ext, int cmd, ... )
 /* Lua specific functions */
 void vlclua_extension_set( lua_State *L, extension_t * );
 extension_t *vlclua_extension_get( lua_State *L );
+int lua_ExtensionAutoload( extensions_manager_t *, extension_t * );
 int lua_ExtensionActivate( extensions_manager_t *, extension_t * );
 int lua_ExtensionDeactivate( extensions_manager_t *, extension_t * );
 int lua_ExecuteFunctionVa( extensions_manager_t *p_mgr, extension_t *p_ext,

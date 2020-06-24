@@ -517,6 +517,10 @@ static int Control( extensions_manager_t *p_mgr, int i_control, va_list args )
 
     switch( i_control )
     {
+        case EXTENSION_AUTOLOAD:
+            p_ext = ( extension_t* ) va_arg( args, extension_t* );
+            return Autoload( p_mgr, p_ext );
+
         case EXTENSION_ACTIVATE:
             p_ext = ( extension_t* ) va_arg( args, extension_t* );
             return Activate( p_mgr, p_ext );
@@ -648,6 +652,12 @@ static int Control( extensions_manager_t *p_mgr, int i_control, va_list args )
     }
 
     return VLC_SUCCESS;
+}
+
+int lua_ExtensionAutoload( extensions_manager_t *p_mgr, extension_t *p_ext )
+{
+    assert( p_mgr != NULL && p_ext != NULL );
+    return lua_ExecuteFunction( p_mgr, p_ext, "autoload", LUA_END );
 }
 
 int lua_ExtensionActivate( extensions_manager_t *p_mgr, extension_t *p_ext )
@@ -937,6 +947,11 @@ int lua_ExecuteFunctionVa( extensions_manager_t *p_mgr, extension_t *p_ext,
         msg_Warn( p_mgr, "Error while running script %s, "
                   "function %s() not found", p_ext->psz_name, psz_function );
         lua_pop( L, 1 );
+        
+        if( psz_function == "autoload" ){
+            i_ret = -1;
+        }
+        
         goto exit;
     }
 

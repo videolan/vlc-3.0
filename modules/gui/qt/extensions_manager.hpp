@@ -73,6 +73,7 @@ public:
 
 public slots:
     bool loadExtensions();
+    void autoloadExtensions( );
     void unloadExtensions();
     void reloadExtensions();
 

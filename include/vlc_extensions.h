@@ -68,6 +68,7 @@ struct extensions_manager_t
 enum
 {
     /* Control extensions */
+    EXTENSION_AUTOLOAD,       /**< arg1: extension_t* */
     EXTENSION_ACTIVATE,       /**< arg1: extension_t* */
     EXTENSION_DEACTIVATE,     /**< arg1: extension_t* */
     EXTENSION_IS_ACTIVATED,   /**< arg1: extension_t*, arg2: bool* */
@@ -111,6 +112,10 @@ static inline bool __extension_GetBool( extensions_manager_t *p_mgr,
     else
         return b;
 }
+
+/** Initialize an extension */
+#define extension_Autoload( mgr, ext ) \
+        extension_Control( mgr, EXTENSION_AUTOLOAD, ext )
 
 /** Activate or trigger an extension */
 #define extension_Activate( mgr, ext ) \
