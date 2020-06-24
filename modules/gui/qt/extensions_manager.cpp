@@ -225,7 +225,7 @@ void ExtensionsManager::triggerMenu( int id )
 
     vlc_mutex_lock( &p_extensions_manager->lock );
 
-    if( (int) i_ext > p_extensions_manager->extensions.i_size )
+    if( (int) i_ext >= p_extensions_manager->extensions.i_size )
     {
         msg_Dbg( p_intf, "can't trigger extension with wrong id %d",
                  (int) i_ext );
